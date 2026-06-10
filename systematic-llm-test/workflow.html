@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VLM Fraud Detection — Workflow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      padding: 48px 32px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #f8fafc;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 56px;
+    }
+
+    /* ── Phase row ── */
+    .phase {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 48px;
+      position: relative;
+    }
+
+    .phase:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 23px;
+      top: 52px;
+      width: 2px;
+      height: calc(100% + 16px);
+      background: linear-gradient(to bottom, #334155, transparent);
+    }
+
+    /* ── Phase number bubble ── */
+    .phase-num {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      border: 2px solid;
+      margin-top: 2px;
+    }
+
+    .phase-num.blue   { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+    .phase-num.purple { background: #2d1b5e; border-color: #8b5cf6; color: #c4b5fd; }
+    .phase-num.green  { background: #14432a; border-color: #22c55e; color: #86efac; }
+    .phase-num.orange { background: #431c0d; border-color: #f97316; color: #fdba74; }
+
+    /* ── Phase content ── */
+    .phase-body { flex: 1; }
+
+    .phase-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    .phase-desc {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    /* ── Card grid ── */
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .card {
+      background: #1e2433;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 14px 18px;
+      min-width: 180px;
+      max-width: 260px;
+      flex: 1;
+    }
+
+    .card-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .card-label.blue   { color: #3b82f6; }
+    .card-label.purple { color: #8b5cf6; }
+    .card-label.green  { color: #22c55e; }
+    .card-label.orange { color: #f97316; }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+
+    .card-detail {
+      font-size: 0.78rem;
+      color: #64748b;
+      line-height: 1.45;
+    }
+
+    /* ── Loop box ── */
+    .loop-box {
+      border: 1px dashed #334155;
+      border-radius: 12px;
+      padding: 20px 20px 16px;
+      margin-top: 4px;
+    }
+
+    .loop-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #475569;
+      margin-bottom: 14px;
+    }
+
+    .loop-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .loop-item {
+      background: #151b27;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+
+    .arrow {
+      color: #475569;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .loop-note {
+      font-size: 0.75rem;
+      color: #475569;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* ── Output badge ── */
+    .output-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .output-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 0.78rem;
+      color: #9ca3af;
+    }
+
+    .output-badge span { font-family: "SF Mono", "Fira Code", monospace; }
+
+    /* ── Status tags ── */
+    .tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .tag.done  { background: #14432a; color: #86efac; }
+    .tag.stub  { background: #431c0d; color: #fdba74; }
+
+    /* ── Decision callout ── */
+    .callout {
+      background: #161d2e;
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin-top: 14px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .callout strong { color: #cbd5e1; }
+  </style>
+</head>
+<body>
+
+  <h1>VLM Fraud Detection — Evaluation Workflow</h1>
+  <p class="subtitle">How you move from raw documents to structured model results</p>
+
+  <!-- ── PHASE 1 ── -->
+  <div class="phase">
+    <div class="phase-num blue">1</div>
+    <div class="phase-body">
+      <div class="phase-title">Data Preparation</div>
+      <div class="phase-desc">
+        Start with real (or synthetic) original documents. Generate tampered and augmented variants programmatically.
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label blue">Input</div>
+          <div class="card-title">Original Documents <span class="tag done">raw/</span></div>
+          <div class="card-detail">Payslips, employment certs (หนังสือรับรอง). Digital files only in Phase 1.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label blue">Step 1a</div>
+          <div class="card-title">Tamper <span class="tag stub">stub</span></div>
+          <div class="card-detail">
+            Text replacement · Stamp overlay<br>
+            Deletion · Cross-tamper<br>
+            Severity: low / high
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label blue">Step 1b</div>
+          <div class="card-title">Augment <span class="tag done">partial</span></div>
+          <div class="card-detail">
+            Rotate · Brightness · Noise<br>
+            Blur · Tilt (stub)<br>
+            Scan degradation (stub)
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label blue">Output</div>
+          <div class="card-title">Labelled Image Set</div>
+          <div class="card-detail">
+            Saved to <span style="font-family:monospace;font-size:0.76rem">tampered/</span> and <span style="font-family:monospace;font-size:0.76rem">augmented/</span><br>
+            50 : 50 genuine vs tampered target
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Design note:</strong> Originals in <code>raw/</code> are never modified. All variants are generated files so you can always regenerate from scratch if the tamper/augment approach changes.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 2 ── -->
+  <div class="phase">
+    <div class="phase-num blue">2</div>
+    <div class="phase-body">
+      <div class="phase-title">Ground Truth Labelling</div>
+      <div class="phase-desc">
+        Every image gets a row in <code>manifest.csv</code> before evaluation runs. This is the source of truth for all analysis.
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label blue">Fields per image</div>
+          <div class="card-title">manifest.csv</div>
+          <div class="card-detail">
+            image_id · image_path · doc_type<br>
+            is_tampered · tamper_types · severity<br>
+            is_augmented · augment_types<br>
+            image_quality · source_image_id
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label blue">You do this</div>
+          <div class="card-title">Manual / Script Fill</div>
+          <div class="card-detail">
+            Fill rows as you create variants. The eval loop reads this file — no manifest row = image is skipped.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 3 ── -->
+  <div class="phase">
+    <div class="phase-num purple">3</div>
+    <div class="phase-body">
+      <div class="phase-title">Evaluation Loop</div>
+      <div class="phase-desc">
+        Run <code>evaluate.py</code>. Every combination of image × model × prompt × iteration is called and written immediately to a <code>.jsonl</code> results file.
+      </div>
+
+      <div class="loop-box">
+        <div class="loop-label">Nested loop structure</div>
+
+        <div class="loop-row">
+          <div class="loop-item">for image in manifest</div>
+          <span class="arrow">→</span>
+          <div class="loop-item">for model in MODELS</div>
+          <span class="arrow">→</span>
+          <div class="loop-item">for prompt_id in library</div>
+          <span class="arrow">→</span>
+          <div class="loop-item">for iteration in 1..N</div>
+        </div>
+
+        <div class="loop-row">
+          <div class="loop-item" style="border-color:#8b5cf6;color:#c4b5fd;">call Vertex AI API</div>
+          <span class="arrow">→</span>
+          <div class="loop-item" style="border-color:#8b5cf6;color:#c4b5fd;">parse response</div>
+          <span class="arrow">→</span>
+          <div class="loop-item" style="border-color:#8b5cf6;color:#c4b5fd;">write result row → flush</div>
+        </div>
+
+        <div class="loop-note">Rate limit enforced between calls. Retry (×3, exponential backoff) on failure. Crash-safe: results written row by row.</div>
+      </div>
+
+      <div class="cards" style="margin-top:16px;">
+        <div class="card">
+          <div class="card-label purple">Models (current)</div>
+          <div class="card-title">gemini-2.5-flash</div>
+          <div class="card-detail">gemini-2.5-pro<br>Add more in config.py</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label purple">Prompt strategies</div>
+          <div class="card-title">5 in library</div>
+          <div class="card-detail">
+            Zero-shot · Chain-of-thought<br>
+            Structured JSON · Stamp probe<br>
+            Text field probe
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label purple">Iterations</div>
+          <div class="card-title">3× per combination</div>
+          <div class="card-detail">Measures model consistency, not just accuracy. Non-deterministic at default temperature.</div>
+        </div>
+      </div>
+
+      <div class="output-row">
+        <div class="output-badge">Output: <span>results/eval_&lt;timestamp&gt;.jsonl</span></div>
+        <div class="output-badge">One JSON line per result row</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 4 ── -->
+  <div class="phase">
+    <div class="phase-num green">4</div>
+    <div class="phase-body">
+      <div class="phase-title">Analysis</div>
+      <div class="phase-desc">
+        Load the <code>.jsonl</code> into pandas. Join on ground truth fields (already embedded in every row). Compute metrics per slice.
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label green">Key questions</div>
+          <div class="card-title">Detection performance</div>
+          <div class="card-detail">
+            Precision / Recall / F1<br>
+            by model · by prompt strategy<br>
+            by tamper type · by severity
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label green">Consistency</div>
+          <div class="card-title">Across iterations</div>
+          <div class="card-detail">
+            Does the model agree with itself 3/3 times?<br>
+            Agreement rate per model × prompt.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label green">Failure modes</div>
+          <div class="card-title">Where does it fail?</div>
+          <div class="card-detail">
+            Low severity vs high severity<br>
+            Digital vs scan-degraded<br>
+            Stamp vs text tampering
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label green">Latency</div>
+          <div class="card-title">Cost vs quality</div>
+          <div class="card-detail">
+            Flash vs Pro latency gap<br>
+            Is Pro accuracy gain worth 2× latency?
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Tip:</strong> The structured JSON prompt (<code>v1_structured</code>) gives machine-parseable per-field confidence scores — use these for deeper analysis than a simple yes/no label.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 5 ── -->
+  <div class="phase">
+    <div class="phase-num orange">5</div>
+    <div class="phase-body">
+      <div class="phase-title">Phase 2 — Scan Degradation (later)</div>
+      <div class="phase-desc">
+        Repeat Phase 1–4 with scan-degraded images. Expect performance to drop. The question is: by how much, and under what degradation level?
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label orange">Implement</div>
+          <div class="card-title">apply_scan_degradation()</div>
+          <div class="card-detail">Simulate scanner shadow, uneven lighting, JPEG compression artefacts.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label orange">New label field</div>
+          <div class="card-title">image_quality</div>
+          <div class="card-detail">
+            Already in schema:<br>
+            <code>digital</code> · <code>scan_high</code> · <code>scan_low</code>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label orange">Same eval loop</div>
+          <div class="card-title">No code change needed</div>
+          <div class="card-detail">Add new rows to manifest.csv and re-run. image_quality is a filter dimension in analysis.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
