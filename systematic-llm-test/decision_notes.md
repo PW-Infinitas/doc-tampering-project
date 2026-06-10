@@ -1,0 +1,1 @@
+Recommended parameter (by Gemini) is   --parameters='temperature=0.1,maxOutputTokens=2048,topP=0.95,topK=40'.
