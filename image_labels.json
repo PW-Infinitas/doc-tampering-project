@@ -1,0 +1,84 @@
+{
+  "test_images/payslip1.jpeg": {
+    "label": "tampered",
+    "label_signals": [
+      "font_weight_inconsistency",
+      "font_size_mismatch",
+      "color_contrast_discontinuity"
+    ]
+  },
+  "test_images/payslip10.jpeg": {
+    "label": "authentic",
+    "label_signals": []
+  },
+  "test_images/payslip2.png": {
+    "label": "tampered",
+    "label_signals": [
+      "font_weight_inconsistency",
+      "font_size_mismatch",
+      "color_contrast_discontinuity"
+    ]
+  },
+  "test_images/payslip20.png": {
+    "label": "authentic",
+    "label_signals": []
+  },
+  "test_images/payslip3.png": {
+    "label": "tampered",
+    "label_signals": [
+      "font_weight_inconsistency",
+      "font_size_mismatch",
+      "color_contrast_discontinuity"
+    ]
+  },
+  "test_images/payslip30.png": {
+    "label": "authentic",
+    "label_signals": []
+  },
+  "test_images/First_Tamper.png": {
+    "label": "authentic",
+    "label_signals": []
+  },
+  "test_images/first-tamper.png": {
+    "label": "tampered",
+    "label_signals": [
+      "background_overlay",
+      "font_weight_inconsistency"
+    ]
+  },
+  "test_images/pink.png": {
+    "label": "tampered",
+    "label_signals": [
+      "background_overlay",
+      "font_weight_inconsistency"
+    ]
+  },
+  "test_images/combined.png": {
+    "label": "tampered",
+    "label_signals": [
+      "background_overlay",
+      "font_weight_inconsistency"
+    ]
+  },
+  "test_images/neat.png": {
+    "label": "tampered",
+    "label_signals": [
+      "font_weight_inconsistency",
+      "baseline_mismatch"
+    ]
+  },
+  "test_images/neatest.png": {
+    "label": "tampered",
+    "label_signals": [
+      "font_weight_inconsistency"
+    ]
+  },
+  "test_images/cropped-obvious.png": {
+    "label": "tampered",
+    "label_signals": [
+      "background_overlay",
+      "font_weight_inconsistency",
+      "baseline_mismatch"
+    ]
+  }
+}

@@ -8,6 +8,7 @@ import pandas as pd
 
 RESULTS_DIR = Path(__file__).parent / "notebook_results"
 LOG_PATH = RESULTS_DIR / "results_log.jsonl"
+LABELS_PATH = Path(__file__).parent / "image_labels.json"
 
 EXPECTED_VERDICTS = {"tampered", "authentic", "inconclusive"}
 EXPECTED_CONFIDENCE_LEVELS = {"high", "medium", "low"}
@@ -24,6 +25,29 @@ EXPECTED_SIGNAL_TYPES = {
 }
 
 
+def load_image_labels() -> dict[str, dict]:
+    """Load ground-truth labels keyed by image path. Returns {} if no labels file exists yet."""
+    if not LABELS_PATH.exists():
+        return {}
+    return json.loads(LABELS_PATH.read_text(encoding="utf-8"))
+
+
+def get_image_label(image_path: str) -> tuple[str | None, list[str]]:
+    """Look up the ground-truth label and signal types for an image path.
+
+    Returns (None, []) if the image has no entry in image_labels.json yet.
+    """
+    entry = load_image_labels().get(str(image_path), {})
+    return entry.get("label"), entry.get("label_signals", [])
+
+
+def set_image_label(image_path: str, label: str, label_signals: list[str] | None = None) -> None:
+    """Add or update the ground-truth label for an image path in image_labels.json."""
+    labels = load_image_labels()
+    labels[str(image_path)] = {"label": label, "label_signals": label_signals or []}
+    LABELS_PATH.write_text(json.dumps(labels, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def log_result(
     batch_id: str,
     image_path: str,
@@ -34,7 +58,12 @@ def log_result(
     latency_s: float | None = None,
     notes: str = "",
 ) -> None:
-    """Append one experiment result as a JSON line to notebook_results/results_log.jsonl."""
+    """Append one experiment result as a JSON line to notebook_results/results_log.jsonl.
+
+    Ground-truth `label` and `label_signals` are not stored here — they are
+    joined in from image_labels.json at load time by `load_results()`, so
+    corrections to image_labels.json apply retroactively to past rows too.
+    """
     record = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "batch_id": batch_id,
@@ -116,6 +145,10 @@ def load_results(batch_id: str | None = None) -> pd.DataFrame:
     - verdict, confidence: pulled directly from the response
     - signal_types: list of signal_type values from signals_detected (empty if none)
     - format: True if the response matches the expected V2 schema, else False
+
+    Adds derived columns joined from image_labels.json by `image_path`:
+    - label: ground-truth label ("tampered" / "authentic"), or None if unset
+    - label_signals: ground-truth signal types, or [] if unset
     """
     if not LOG_PATH.exists():
         return pd.DataFrame()
@@ -141,5 +174,13 @@ def load_results(batch_id: str | None = None) -> pd.DataFrame:
     )
     df["signal_types"] = df["parsed_response"].apply(_extract_signal_types)
     df["format"] = df["parsed_response"].apply(_matches_expected_schema)
+
+    image_labels = load_image_labels()
+    df["label"] = df["image_path"].apply(
+        lambda path: image_labels.get(str(path), {}).get("label")
+    )
+    df["label_signals"] = df["image_path"].apply(
+        lambda path: image_labels.get(str(path), {}).get("label_signals", [])
+    )
 
     return df
