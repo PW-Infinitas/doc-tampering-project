@@ -3,11 +3,16 @@
 2. Communicate: Confirm how many models (their codes) do I acc have access to + Is my synthetic data reasonable 
 
 
-4. Augment images to expand negative case space
-5. Synthesize more tampered images, following the plan
+4. Augment images to expand negative case space & can do this while running smth in the background
+5. Synthesize more tampered images, following the plan (wait for the printed docs)
 6. Finalise the model list, prompt list, image list -> Run the script a few times for each and log all
 7. Analyse the results.
 
+### Work loop for today
+- Get ready for looping through the models, temps, prompt versions for each image
+- Analyse whatever I can in the meantime -> improve my prompts/ cut down some cases 
+
+- Augmentation study + script EOD
 
 
 ### Signal type definitions (what each one means / what edit it points to):
